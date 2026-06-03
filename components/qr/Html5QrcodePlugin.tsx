@@ -33,7 +33,10 @@ export default function Html5QrcodePlugin({ onScanSuccess, onError }: Html5Qrcod
         const cameras = await Html5Qrcode.getCameras();
         if (isStopped) return;
 
-        const cameraId = cameras && cameras.length > 0 ? cameras[0].id : undefined;
+        const preferredCamera = cameras?.find((camera) =>
+          /rear|back|environment/i.test(camera.label || ''),
+        );
+        const cameraId = preferredCamera?.id || cameras?.[0]?.id;
         const cameraConfig = cameraId ? cameraId : { facingMode: 'environment' };
 
         await html5QrCode.start(
@@ -68,7 +71,7 @@ export default function Html5QrcodePlugin({ onScanSuccess, onError }: Html5Qrcod
         // Cleanup
       });
     };
-  }, [onScanSuccess]);
+  }, [onScanSuccess, onError]);
 
   return (
     <div id="html5qr-code-full-region" style={{ width: '100%', minHeight: '300px' }} />
