@@ -12,14 +12,14 @@ export function isTimeInWindow(startTime: string, endTime: string): boolean {
  * Parse time string (HH:MM) to minutes since midnight
  */
 export function timeToMinutes(timeStr: string): number {
-  const [hours, minutes] = timeStr.split(':').map(Number);
+  const [hours, minutes] = timeStr.trim().split(':').map(Number);
   return hours * 60 + minutes;
 }
 
-/**
- * Get school's timezone offset (in minutes from UTC)
- * All course times are stored in and interpreted using this timezone
- */
+function normalizeDayName(dayName: string): string {
+  return dayName.trim().toLowerCase();
+}
+
 function parseTimezoneOffset(value?: string): number | null {
   if (!value) return null;
   const trimmed = value.trim();
@@ -27,7 +27,6 @@ function parseTimezoneOffset(value?: string): number | null {
 
   const numeric = Number(trimmed);
   if (!Number.isNaN(numeric)) {
-    // Support both minute-based and common hour-based timezone values.
     if (!trimmed.includes(':') && Math.abs(numeric) <= 14) {
       return numeric * 60;
     }
@@ -52,40 +51,26 @@ export function getSchoolTimezoneOffset(): number {
   return -new Date().getTimezoneOffset();
 }
 
+function getSchoolNow(): Date {
+  const utcTime = Date.now();
+  const schoolOffset = getSchoolTimezoneOffset();
+  return new Date(utcTime + schoolOffset * 60 * 1000);
+}
+
 /**
  * Get current time in HH:MM format using school timezone
  * All course time validation uses school timezone consistently
  */
-export function getCurrentTimeString(timezoneOffsetMinutes?: number): string {
-  const now = new Date();
-  
-  // Use school timezone for course validation
-  // (client timezone parameter is ignored for consistency)
-  const schoolOffset = getSchoolTimezoneOffset();
-  
-  // Convert UTC time to school timezone
-  const utcTime = now.getTime();
-  const timezoneDiff = schoolOffset * 60 * 1000;
-  const adjustedTime = new Date(utcTime + timezoneDiff);
-  
+export function getCurrentTimeString(): string {
+  const adjustedTime = getSchoolNow();
   return `${String(adjustedTime.getUTCHours()).padStart(2, '0')}:${String(adjustedTime.getUTCMinutes()).padStart(2, '0')}`;
 }
 
 /**
  * Get day of week (0 = Sunday, 6 = Saturday) using school timezone
  */
-export function getDayOfWeek(timezoneOffsetMinutes?: number): number {
-  const now = new Date();
-  
-  // Use school timezone for course validation
-  const schoolOffset = getSchoolTimezoneOffset();
-  
-  // Convert UTC time to school timezone
-  const utcTime = now.getTime();
-  const timezoneDiff = schoolOffset * 60 * 1000;
-  const adjustedTime = new Date(utcTime + timezoneDiff);
-  
-  return adjustedTime.getUTCDay();
+export function getDayOfWeek(): number {
+  return getSchoolNow().getUTCDay();
 }
 
 /**
@@ -109,8 +94,9 @@ export function isCourseActive(
   endTime: string,
   timezoneOffsetMinutes?: number
 ): boolean {
-  const today = getDayName(getDayOfWeek());
-  if (today !== courseDayOfWeek) return false;
+  const today = normalizeDayName(getDayName(getDayOfWeek()));
+  const scheduledDay = normalizeDayName(courseDayOfWeek);
+  if (today !== scheduledDay) return false;
 
   const currentMinutes = timeToMinutes(getCurrentTimeString());
   const startMinutes = timeToMinutes(startTime);
