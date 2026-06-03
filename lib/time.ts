@@ -20,13 +20,36 @@ export function timeToMinutes(timeStr: string): number {
  * Get school's timezone offset (in minutes from UTC)
  * All course times are stored in and interpreted using this timezone
  */
-export function getSchoolTimezoneOffset(): number {
-  // Get from environment variable, default to 0 (UTC)
-  const offset = process.env.NEXT_PUBLIC_SCHOOL_TIMEZONE_OFFSET;
-  if (offset !== undefined) {
-    return parseInt(offset, 10);
+function parseTimezoneOffset(value?: string): number | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+
+  const numeric = Number(trimmed);
+  if (!Number.isNaN(numeric)) {
+    // Support both minute-based and common hour-based timezone values.
+    if (!trimmed.includes(':') && Math.abs(numeric) <= 14) {
+      return numeric * 60;
+    }
+    return numeric;
   }
-  return 0; // Default to UTC
+
+  const match = trimmed.match(/^UTC([+-]?\d{1,2})(?::(\d{2}))?$/i);
+  if (match) {
+    const hours = Number(match[1]);
+    const minutes = Number(match[2] || '0');
+    return hours * 60 + Math.sign(hours) * minutes;
+  }
+
+  return null;
+}
+
+export function getSchoolTimezoneOffset(): number {
+  const rawOffset = process.env.NEXT_PUBLIC_SCHOOL_TIMEZONE_OFFSET ?? process.env.SCHOOL_TIMEZONE_OFFSET;
+  const parsed = parseTimezoneOffset(rawOffset ?? undefined);
+  if (parsed !== null) return parsed;
+
+  return -new Date().getTimezoneOffset();
 }
 
 /**

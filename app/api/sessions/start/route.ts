@@ -44,12 +44,15 @@ export async function POST(request: NextRequest) {
 
     const course = (assignment as any).courses;
 
-    // Check if course is currently active (within time window)
-    // Uses school timezone configured in environment variables
-    // This ensures consistent validation across all users regardless of their local timezone
-    if (!isCourseActive(course.day_of_week, course.start_time, course.end_time)) {
+    const courseIsActive = Array.isArray(course.schedule) && course.schedule.length > 0
+      ? course.schedule.some((scheduleEntry: any) =>
+          isCourseActive(scheduleEntry.day_of_week, scheduleEntry.start_time, scheduleEntry.end_time),
+        )
+      : isCourseActive(course.day_of_week, course.start_time, course.end_time);
+
+    if (!courseIsActive) {
       return NextResponse.json(
-        { error: 'Course is not currently scheduled (check day and time)' },
+        { error: 'Course is not currently scheduled (check day, time, and timezone configuration)' },
         { status: 400 }
       );
     }
