@@ -136,7 +136,7 @@ export default function AttendancePage() {
 
           {step === 'qr' && (
             <div className="space-y-4">
-              <Html5QrcodePlugin onScanSuccess={handleQRScanned} />
+              <Html5QrcodePlugin onScanSuccess={handleQRScanned} onError={setError} />
               <p className="text-sm text-muted-foreground text-center">
                 Point your camera at the QR code
               </p>
