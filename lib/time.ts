@@ -17,18 +17,41 @@ export function timeToMinutes(timeStr: string): number {
 }
 
 /**
- * Get current time in HH:MM format
+ * Get current time in HH:MM format (with optional timezone offset support)
+ * @param timezoneOffsetMinutes - Minutes offset from UTC (e.g., -300 for EST, 330 for IST)
  */
-export function getCurrentTimeString(): string {
+export function getCurrentTimeString(timezoneOffsetMinutes?: number): string {
   const now = new Date();
-  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  
+  let date = now;
+  if (timezoneOffsetMinutes !== undefined) {
+    // Convert UTC time to timezone-adjusted time
+    const utcTime = now.getTime();
+    const timezoneDiff = timezoneOffsetMinutes * 60 * 1000;
+    const adjustedTime = new Date(utcTime + timezoneDiff);
+    date = adjustedTime;
+  }
+  
+  return `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
 }
 
 /**
- * Get day of week (0 = Sunday, 6 = Saturday)
+ * Get day of week (0 = Sunday, 6 = Saturday) with optional timezone offset support
+ * @param timezoneOffsetMinutes - Minutes offset from UTC
  */
-export function getDayOfWeek(): number {
-  return new Date().getDay();
+export function getDayOfWeek(timezoneOffsetMinutes?: number): number {
+  const now = new Date();
+  
+  let date = now;
+  if (timezoneOffsetMinutes !== undefined) {
+    // Convert UTC time to timezone-adjusted time
+    const utcTime = now.getTime();
+    const timezoneDiff = timezoneOffsetMinutes * 60 * 1000;
+    const adjustedTime = new Date(utcTime + timezoneDiff);
+    date = adjustedTime;
+  }
+  
+  return date.getUTCDay();
 }
 
 /**
@@ -41,12 +64,21 @@ export function getDayName(dayNum: number): string {
 
 /**
  * Check if a course is currently active (today and within time window)
+ * @param courseDayOfWeek - The day of week the course is scheduled (e.g., "Monday")
+ * @param startTime - Course start time in HH:MM format
+ * @param endTime - Course end time in HH:MM format
+ * @param timezoneOffsetMinutes - Minutes offset from UTC (from client's timezone)
  */
-export function isCourseActive(courseDayOfWeek: string, startTime: string, endTime: string): boolean {
-  const today = getDayName(getDayOfWeek());
+export function isCourseActive(
+  courseDayOfWeek: string,
+  startTime: string,
+  endTime: string,
+  timezoneOffsetMinutes?: number
+): boolean {
+  const today = getDayName(getDayOfWeek(timezoneOffsetMinutes));
   if (today !== courseDayOfWeek) return false;
 
-  const currentMinutes = timeToMinutes(getCurrentTimeString());
+  const currentMinutes = timeToMinutes(getCurrentTimeString(timezoneOffsetMinutes));
   const startMinutes = timeToMinutes(startTime);
   const endMinutes = timeToMinutes(endTime);
 

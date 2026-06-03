@@ -83,6 +83,7 @@ export const assignClassSchema = z.object({
 // Session schemas
 export const startSessionSchema = z.object({
   course_id: z.string().uuid('Invalid course ID'),
+  timezoneOffset: z.number().int().min(-840).max(840).optional().describe('Minutes offset from UTC (e.g., -300 for EST, 330 for IST)'),
 });
 
 export const markAttendanceSchema = z.object({
