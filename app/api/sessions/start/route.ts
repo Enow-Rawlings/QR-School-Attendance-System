@@ -44,11 +44,30 @@ export async function POST(request: NextRequest) {
 
     const course = (assignment as any).courses;
 
-    const courseIsActive = Array.isArray(course.schedule) && course.schedule.length > 0
-      ? course.schedule.some((scheduleEntry: any) =>
-          isCourseActive(scheduleEntry.day_of_week, scheduleEntry.start_time, scheduleEntry.end_time),
-        )
-      : isCourseActive(course.day_of_week, course.start_time, course.end_time);
+    const courseSchedule = Array.isArray(course.schedule)
+      ? course.schedule
+      : typeof course.schedule === 'string'
+      ? (() => {
+          try {
+            return JSON.parse(course.schedule);
+          } catch {
+            return [];
+          }
+        })()
+      : [];
+
+    let courseIsActive = false;
+
+    if (Array.isArray(courseSchedule) && courseSchedule.length > 0) {
+      courseIsActive = courseSchedule.some((scheduleEntry: any) =>
+        scheduleEntry?.day_of_week && scheduleEntry?.start_time && scheduleEntry?.end_time &&
+        isCourseActive(scheduleEntry.day_of_week, scheduleEntry.start_time, scheduleEntry.end_time),
+      );
+    }
+
+    if (!courseIsActive) {
+      courseIsActive = isCourseActive(course.day_of_week, course.start_time, course.end_time);
+    }
 
     if (!courseIsActive) {
       return NextResponse.json(

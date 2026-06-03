@@ -25,15 +25,24 @@ function parseTimezoneOffset(value?: string): number | null {
   const trimmed = value.trim();
   if (trimmed === '') return null;
 
-  const numeric = Number(trimmed);
+  const normalized = trimmed.replace(/^(UTC|GMT)/i, '');
+
+  const numeric = Number(normalized);
   if (!Number.isNaN(numeric)) {
-    if (!trimmed.includes(':') && Math.abs(numeric) <= 14) {
+    if (!normalized.includes(':') && Math.abs(numeric) <= 14) {
       return numeric * 60;
+    }
+    if (Math.abs(numeric) >= 100 && Math.abs(numeric) <= 2359) {
+      const sign = Math.sign(numeric) || 1;
+      const absValue = Math.abs(numeric);
+      const hours = Math.floor(absValue / 100);
+      const minutes = absValue % 100;
+      return sign * (hours * 60 + minutes);
     }
     return numeric;
   }
 
-  const match = trimmed.match(/^UTC([+-]?\d{1,2})(?::(\d{2}))?$/i);
+  const match = normalized.match(/^([+-]?\d{1,2})(?::(\d{2}))?$/);
   if (match) {
     const hours = Number(match[1]);
     const minutes = Number(match[2] || '0');
