@@ -101,10 +101,15 @@ export default function Html5QrcodePlugin({ onScanSuccess, onError }: Html5Qrcod
 
     return () => {
       isStopped = true;
-      if (html5QrCode) {
-        html5QrCode.stop().catch(() => {
-          // Cleanup
-        });
+      try {
+        if (html5QrCode && scannerRunning) {
+          scannerRunning = false;
+          html5QrCode.stop().catch(() => {
+            // Cleanup
+          });
+        }
+      } catch (e) {
+        // ignore
       }
     };
   }, [onScanSuccess, onError]);
