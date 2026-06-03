@@ -58,22 +58,40 @@ export async function GET(request: NextRequest) {
 
     // If student isn't enrolled in any courses return empty list
     if (allCourseIds.length === 0) {
-      return NextResponse.json({ sessions: [] });
+      return NextResponse.json({ courses: [] });
     }
 
-    // Get active sessions for all accessible courses
-    const { data: sessions, error } = await supabaseServer
+    // Get all accessible courses for the student
+    const { data: courses, error: coursesError } = await supabaseServer
+      .from('courses')
+      .select('*')
+      .in('id', allCourseIds)
+      .order('code', { ascending: true });
+
+    if (coursesError) throw coursesError;
+
+    // Get any active sessions for those courses
+    const { data: activeSessions, error: sessionsError } = await supabaseServer
       .from('sessions')
-      .select('*, courses(*)')
+      .select('id, course_id, status, closes_at')
       .eq('status', 'active')
       .in('course_id', allCourseIds);
 
-    if (error) throw error;
+    if (sessionsError) throw sessionsError;
 
-    // Filter out sessions with null courses (deleted courses)
-    const validSessions = (sessions || []).filter((session: any) => session.courses !== null);
+    const activeSessionByCourseId: Record<string, any> = {};
+    (activeSessions || []).forEach((session: any) => {
+      if (session && session.course_id) {
+        activeSessionByCourseId[session.course_id] = session;
+      }
+    });
 
-    return NextResponse.json({ sessions: validSessions });
+    const coursesWithSession = (courses || []).map((course: any) => ({
+      ...course,
+      activeSession: activeSessionByCourseId[course.id] || null,
+    }));
+
+    return NextResponse.json({ courses: coursesWithSession });
   } catch (error) {
     console.error('[v0] Get student sessions error:', error);
     return NextResponse.json(

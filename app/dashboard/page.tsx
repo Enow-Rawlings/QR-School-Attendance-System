@@ -10,17 +10,18 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
 import type { Course } from '@/lib/db';
 
-interface SessionWithCourse {
-  id: string;
-  course_id: string;
-  status: string;
-  closes_at: string;
-  course: Course;
+interface CourseWithActiveSession extends Course {
+  activeSession?: {
+    id: string;
+    course_id: string;
+    status: string;
+    closes_at: string;
+  } | null;
 }
 
 export default function StudentDashboard() {
   const { user, updateUser } = useAuth();
-  const [sessions, setSessions] = useState<SessionWithCourse[]>([]);
+  const [courses, setCourses] = useState<CourseWithActiveSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [attendanceMap, setAttendanceMap] = useState<Record<string, number>>({});
@@ -35,10 +36,10 @@ export default function StudentDashboard() {
     const fetchSessions = async () => {
       try {
         const response = await fetch('/api/sessions/student');
-        if (!response.ok) throw new Error('Failed to fetch sessions');
+        if (!response.ok) throw new Error('Failed to fetch courses');
 
         const data = await response.json();
-        setSessions(data.sessions || []);
+        setCourses(data.courses || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -148,6 +149,13 @@ export default function StudentDashboard() {
       setSaving(false);
     }
   };
+
+  const sortedCourses = [...courses].sort((a, b) => {
+    const aActive = a.activeSession?.status === 'active';
+    const bActive = b.activeSession?.status === 'active';
+    if (aActive === bActive) return a.code.localeCompare(b.code);
+    return aActive ? -1 : 1;
+  });
 
   if (loading) {
     return <p className="text-muted-foreground">Loading sessions...</p>;
@@ -286,43 +294,46 @@ export default function StudentDashboard() {
               </Alert>
             )}
 
-            {sessions.length === 0 ? (
+            {courses.length === 0 ? (
               <Card className="glass border-white/10 bg-white/5">
                 <CardContent className="py-10 text-center text-slate-300">
-                  No active sessions yet. Check back once your lecturer starts a session.
+                  No courses found for your department and level yet. Check with your administrator.
                 </CardContent>
               </Card>
             ) : (
               <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {sessions.map((session) => {
-                  // Skip sessions with missing course data
-                  if (!session.course) return null;
+                {sortedCourses.map((course) => {
+                  const activeSession = course.activeSession;
+                  const isActive = activeSession?.status === 'active';
                   return (
-                  <Card key={session.id} className="glass border-white/10 bg-white/5">
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <CardTitle className="text-lg">{session.course.code}</CardTitle>
-                          <CardDescription>{session.course.name}</CardDescription>
+                    <Card
+                      key={course.id}
+                      className={`glass border-white/10 bg-white/5 ${isActive ? 'border-emerald-500/20 shadow-[0_0_0_1px_rgba(16,185,129,0.15)]' : ''}`}
+                    >
+                      <CardHeader>
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <CardTitle className="text-lg">{course.code}</CardTitle>
+                            <CardDescription>{course.name}</CardDescription>
+                          </div>
+                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isActive ? 'bg-emerald-500/15 text-emerald-200' : 'bg-slate-500/15 text-slate-200'}`}>
+                            {isActive ? 'Open for attendance' : 'No active session'}
+                          </span>
                         </div>
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${session.status === 'active' ? 'bg-emerald-500/15 text-emerald-200' : 'bg-slate-500/15 text-slate-200'}`}>
-                          {session.status === 'active' ? 'Active' : 'Closed'}
-                        </span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="text-sm text-slate-400">
-                        {session.course.day_of_week} • {session.course.start_time} - {session.course.end_time}
-                      </div>
-                      <div className="text-sm text-slate-300">Attendance count: {attendanceMap[session.course.id] ?? 0}</div>
-                      {session.status === 'active' && (
-                        <Link href={`/attend/${session.id}`}>
-                          <Button className="w-full">Mark Attendance</Button>
-                        </Link>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="text-sm text-slate-400">
+                          {course.day_of_week} • {course.start_time} - {course.end_time}
+                        </div>
+                        <div className="text-sm text-slate-300">Attendance count: {attendanceMap[course.id] ?? 0}</div>
+                        {isActive && activeSession && (
+                          <Link href={`/attend/${activeSession.id}`}>
+                            <Button className="w-full">Mark Attendance</Button>
+                          </Link>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
                 })}
               </div>
             )}
