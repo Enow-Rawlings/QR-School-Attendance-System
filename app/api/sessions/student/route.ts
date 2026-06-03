@@ -38,7 +38,10 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ sessions: sessions || [] });
+    // Filter out sessions with null courses (deleted courses)
+    const validSessions = (sessions || []).filter((session: any) => session.courses !== null);
+
+    return NextResponse.json({ sessions: validSessions });
   } catch (error) {
     console.error('[v0] Get student sessions error:', error);
     return NextResponse.json(

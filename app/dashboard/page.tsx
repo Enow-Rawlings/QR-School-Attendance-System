@@ -294,7 +294,10 @@ export default function StudentDashboard() {
               </Card>
             ) : (
               <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {sessions.map((session) => (
+                {sessions.map((session) => {
+                  // Skip sessions with missing course data
+                  if (!session.course) return null;
+                  return (
                   <Card key={session.id} className="glass border-white/10 bg-white/5">
                     <CardHeader>
                       <div className="flex items-start justify-between gap-4">
@@ -319,7 +322,8 @@ export default function StudentDashboard() {
                       )}
                     </CardContent>
                   </Card>
-                ))}
+                );
+                })}
               </div>
             )}
           </section>
