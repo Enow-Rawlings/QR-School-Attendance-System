@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
     }
 
-    // Get courses the student is enrolled in
+    // Get courses the student is directly enrolled in (from enrollments table)
     const enrollRes = await supabaseServer
       .from('course_enrollments')
       .select('course_id')
@@ -24,17 +24,49 @@ export async function GET(request: NextRequest) {
 
     const enrolledCourseIds = enrollRes.data?.map((e: any) => e.course_id) || [];
 
+    // ALSO get courses assigned to student's class (even if not directly enrolled)
+    // This handles courses assigned to the class after student registration
+    const classCourseIds: string[] = [];
+    
+    if (user.level && user.department) {
+      // Get all classes matching student's level and department
+      const classRes = await supabaseServer
+        .from('classes')
+        .select('id')
+        .eq('level', user.level)
+        .eq('department', user.department);
+
+      if (classRes.error) throw classRes.error;
+
+      const classIds = (classRes.data || []).map((c: any) => c.id);
+
+      if (classIds.length > 0) {
+        // Get all courses assigned to those classes
+        const courseClassRes = await supabaseServer
+          .from('course_classes')
+          .select('course_id')
+          .in('class_id', classIds);
+
+        if (courseClassRes.error) throw courseClassRes.error;
+        
+        classCourseIds.push(...(courseClassRes.data || []).map((cc: any) => cc.course_id));
+      }
+    }
+
+    // Combine both sources and deduplicate
+    const allCourseIds = [...new Set([...enrolledCourseIds, ...classCourseIds])];
+
     // If student isn't enrolled in any courses return empty list
-    if (enrolledCourseIds.length === 0) {
+    if (allCourseIds.length === 0) {
       return NextResponse.json({ sessions: [] });
     }
 
-    // Get active sessions for courses student is enrolled in
+    // Get active sessions for all accessible courses
     const { data: sessions, error } = await supabaseServer
       .from('sessions')
       .select('*, courses(*)')
       .eq('status', 'active')
-      .in('course_id', enrolledCourseIds);
+      .in('course_id', allCourseIds);
 
     if (error) throw error;
 
