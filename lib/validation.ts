@@ -30,7 +30,7 @@ export const baseCourseSchema = z.object({
 });
 
 const scheduleEntrySchema = z.object({
-  day_of_week: z.enum(['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  day_of_week: z.enum(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']),
   start_time: z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time format (HH:MM)'),
   end_time: z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time format (HH:MM)'),
 }).refine((entry) => {

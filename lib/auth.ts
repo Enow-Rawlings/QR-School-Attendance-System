@@ -1,5 +1,7 @@
 import { jwtVerify, SignJWT } from 'jose';
 import { cookies } from 'next/headers';
+import { supabaseServer } from '@/lib/db';
+import type { User } from '@/lib/db';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.SUPABASE_JWT_SECRET || 'your-secret-key');
 const JWT_EXPIRY = 60 * 60 * 24; // 24 hours for session, but QR tokens are 20s
@@ -152,8 +154,28 @@ export async function hashToken(token: string): Promise<string> {
 /**
  * Get current user from session cookie
  */
-export async function getCurrentUser(): Promise<JWTPayload | null> {
+export type CurrentUser = User & {
+  sub: string;
+};
+
+export async function getCurrentUser(): Promise<CurrentUser | null> {
   const token = await getSessionCookie();
   if (!token) return null;
-  return verifyToken(token);
+  const payload = await verifyToken(token);
+  if (!payload) return null;
+
+  if (!supabaseServer) return null;
+
+  const { data, error } = await supabaseServer
+    .from('users')
+    .select('id, email, role, student_id, level, department, full_name')
+    .eq('id', payload.sub)
+    .single();
+
+  if (error || !data) return null;
+
+  return {
+    ...data,
+    sub: data.id,
+  };
 }
