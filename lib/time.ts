@@ -17,41 +17,52 @@ export function timeToMinutes(timeStr: string): number {
 }
 
 /**
- * Get current time in HH:MM format (with optional timezone offset support)
- * @param timezoneOffsetMinutes - Minutes offset from UTC (e.g., -300 for EST, 330 for IST)
+ * Get school's timezone offset (in minutes from UTC)
+ * All course times are stored in and interpreted using this timezone
+ */
+export function getSchoolTimezoneOffset(): number {
+  // Get from environment variable, default to 0 (UTC)
+  const offset = process.env.NEXT_PUBLIC_SCHOOL_TIMEZONE_OFFSET;
+  if (offset !== undefined) {
+    return parseInt(offset, 10);
+  }
+  return 0; // Default to UTC
+}
+
+/**
+ * Get current time in HH:MM format using school timezone
+ * All course time validation uses school timezone consistently
  */
 export function getCurrentTimeString(timezoneOffsetMinutes?: number): string {
   const now = new Date();
   
-  let date = now;
-  if (timezoneOffsetMinutes !== undefined) {
-    // Convert UTC time to timezone-adjusted time
-    const utcTime = now.getTime();
-    const timezoneDiff = timezoneOffsetMinutes * 60 * 1000;
-    const adjustedTime = new Date(utcTime + timezoneDiff);
-    date = adjustedTime;
-  }
+  // Use school timezone for course validation
+  // (client timezone parameter is ignored for consistency)
+  const schoolOffset = getSchoolTimezoneOffset();
   
-  return `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
+  // Convert UTC time to school timezone
+  const utcTime = now.getTime();
+  const timezoneDiff = schoolOffset * 60 * 1000;
+  const adjustedTime = new Date(utcTime + timezoneDiff);
+  
+  return `${String(adjustedTime.getUTCHours()).padStart(2, '0')}:${String(adjustedTime.getUTCMinutes()).padStart(2, '0')}`;
 }
 
 /**
- * Get day of week (0 = Sunday, 6 = Saturday) with optional timezone offset support
- * @param timezoneOffsetMinutes - Minutes offset from UTC
+ * Get day of week (0 = Sunday, 6 = Saturday) using school timezone
  */
 export function getDayOfWeek(timezoneOffsetMinutes?: number): number {
   const now = new Date();
   
-  let date = now;
-  if (timezoneOffsetMinutes !== undefined) {
-    // Convert UTC time to timezone-adjusted time
-    const utcTime = now.getTime();
-    const timezoneDiff = timezoneOffsetMinutes * 60 * 1000;
-    const adjustedTime = new Date(utcTime + timezoneDiff);
-    date = adjustedTime;
-  }
+  // Use school timezone for course validation
+  const schoolOffset = getSchoolTimezoneOffset();
   
-  return date.getUTCDay();
+  // Convert UTC time to school timezone
+  const utcTime = now.getTime();
+  const timezoneDiff = schoolOffset * 60 * 1000;
+  const adjustedTime = new Date(utcTime + timezoneDiff);
+  
+  return adjustedTime.getUTCDay();
 }
 
 /**
@@ -64,10 +75,10 @@ export function getDayName(dayNum: number): string {
 
 /**
  * Check if a course is currently active (today and within time window)
+ * Uses SCHOOL TIMEZONE for all validation - ensures consistent results across all lecturers
  * @param courseDayOfWeek - The day of week the course is scheduled (e.g., "Monday")
- * @param startTime - Course start time in HH:MM format
- * @param endTime - Course end time in HH:MM format
- * @param timezoneOffsetMinutes - Minutes offset from UTC (from client's timezone)
+ * @param startTime - Course start time in HH:MM format (in school timezone)
+ * @param endTime - Course end time in HH:MM format (in school timezone)
  */
 export function isCourseActive(
   courseDayOfWeek: string,
@@ -75,10 +86,10 @@ export function isCourseActive(
   endTime: string,
   timezoneOffsetMinutes?: number
 ): boolean {
-  const today = getDayName(getDayOfWeek(timezoneOffsetMinutes));
+  const today = getDayName(getDayOfWeek());
   if (today !== courseDayOfWeek) return false;
 
-  const currentMinutes = timeToMinutes(getCurrentTimeString(timezoneOffsetMinutes));
+  const currentMinutes = timeToMinutes(getCurrentTimeString());
   const startMinutes = timeToMinutes(startTime);
   const endMinutes = timeToMinutes(endTime);
 

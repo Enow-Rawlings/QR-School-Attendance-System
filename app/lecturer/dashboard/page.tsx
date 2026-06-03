@@ -40,16 +40,10 @@ export default function LecturerDashboard() {
     setSessionError('');
 
     try {
-      // Get the user's timezone offset (in minutes)
-      const timezoneOffset = -new Date().getTimezoneOffset();
-
       const response = await fetch('/api/sessions/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          course_id: courseId,
-          timezoneOffset: timezoneOffset,
-        }),
+        body: JSON.stringify({ course_id: courseId }),
       });
 
       const result = await response.json();

@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { course_id, timezoneOffset } = result.data;
+    const { course_id } = result.data;
 
     // Verify lecturer teaches this course
     const { data: assignment } = await supabaseServer
@@ -45,8 +45,9 @@ export async function POST(request: NextRequest) {
     const course = (assignment as any).courses;
 
     // Check if course is currently active (within time window)
-    // Pass timezoneOffset to handle client's local timezone correctly
-    if (!isCourseActive(course.day_of_week, course.start_time, course.end_time, timezoneOffset)) {
+    // Uses school timezone configured in environment variables
+    // This ensures consistent validation across all users regardless of their local timezone
+    if (!isCourseActive(course.day_of_week, course.start_time, course.end_time)) {
       return NextResponse.json(
         { error: 'Course is not currently scheduled (check day and time)' },
         { status: 400 }
