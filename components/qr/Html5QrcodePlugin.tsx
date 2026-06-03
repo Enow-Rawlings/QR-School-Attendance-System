@@ -1,48 +1,71 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
 
 interface Html5QrcodePluginProps {
   onScanSuccess: (decodedText: string) => void;
   onError?: (message: string) => void;
 }
 
+declare global {
+  interface Window {
+    eruda?: any;
+  }
+}
+
 export default function Html5QrcodePlugin({ onScanSuccess, onError }: Html5QrcodePluginProps) {
-  const qrRef = useRef<Html5Qrcode | null>(null);
+  const qrRef = useRef<any>(null);
 
   useEffect(() => {
+    let html5QrCode: any;
+    let isStopped = false;
+
     const qrcodeRegion = document.getElementById('html5qr-code-full-region');
     if (!qrcodeRegion) {
       console.error('[v0] QR code region not found');
       return;
     }
 
-    const html5QrCode = new Html5Qrcode('html5qr-code-full-region');
-    qrRef.current = html5QrCode;
-    let isStopped = false;
-
-    const config = {
-      fps: 10,
-      qrbox: { width: 250, height: 250 },
-      aspectRatio: 1.0,
-    };
-
     const startScanner = async () => {
       try {
-        const cameras = await Html5Qrcode.getCameras();
+        const module = await import('html5-qrcode');
+        const { Html5Qrcode } = module;
         if (isStopped) return;
 
-        const preferredCamera = cameras?.find((camera) =>
-          /rear|back|environment/i.test(camera.label || ''),
-        );
-        const cameraId = preferredCamera?.id || cameras?.[0]?.id;
-        const cameraConfig = cameraId ? cameraId : { facingMode: 'environment' };
+        html5QrCode = new Html5Qrcode('html5qr-code-full-region');
+        qrRef.current = html5QrCode;
+
+        const config = {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+        };
+
+        const cameras = await Html5Qrcode.getCameras();
+        if (isStopped) return;
+        let cameraConfig: any = { facingMode: 'environment' };
+        try {
+          if (Array.isArray(cameras) && cameras.length > 0) {
+            const preferredCamera = cameras.find((camera: any) =>
+              /rear|back|environment/i.test(camera.label || ''),
+            );
+            const cameraId = preferredCamera?.id || cameras[0]?.id;
+            cameraConfig = cameraId || { facingMode: 'environment' };
+          }
+        } catch (e) {
+          // If anything goes wrong enumerating cameras, fallback to facingMode
+          cameraConfig = { facingMode: 'environment' };
+        }
+
+        // If mediaDevices or getUserMedia not available, try to start with facingMode fallback
+        if (!navigator?.mediaDevices?.getUserMedia) {
+          cameraConfig = { facingMode: 'environment' };
+        }
 
         await html5QrCode.start(
           cameraConfig,
           config,
-          (decodedText) => {
+          (decodedText: string) => {
             if (isStopped) return;
             onScanSuccess(decodedText);
             html5QrCode.stop().catch(() => {
@@ -67,9 +90,11 @@ export default function Html5QrcodePlugin({ onScanSuccess, onError }: Html5Qrcod
 
     return () => {
       isStopped = true;
-      html5QrCode.stop().catch(() => {
-        // Cleanup
-      });
+      if (html5QrCode) {
+        html5QrCode.stop().catch(() => {
+          // Cleanup
+        });
+      }
     };
   }, [onScanSuccess, onError]);
 
