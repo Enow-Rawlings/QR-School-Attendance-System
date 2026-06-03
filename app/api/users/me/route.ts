@@ -15,6 +15,7 @@ export async function PATCH(request: NextRequest) {
     if (body.full_name) updates.full_name = body.full_name;
     if (body.student_id) updates.student_id = body.student_id;
     if (body.department) updates.department = body.department;
+    if (body.level) updates.level = body.level;
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No updates provided' }, { status: 400 });

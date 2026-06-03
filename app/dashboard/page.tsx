@@ -28,6 +28,7 @@ export default function StudentDashboard() {
   const [editing, setEditing] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [departments, setDepartments] = useState<string[]>([]);
+  const LEVEL_OPTIONS = ['Level 200', 'Level 300', 'Level 400', 'Masters Year 1', 'Masters Year 2'];
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState('');
   const [saving, setSaving] = useState(false);
@@ -99,6 +100,16 @@ export default function StudentDashboard() {
       toast({
         title: 'Invalid profile',
         description: 'Please enter your student ID before saving.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!profile?.level?.trim()) {
+      setSaveError('Level is required');
+      toast({
+        title: 'Invalid profile',
+        description: 'Please select your academic level before saving.',
         variant: 'destructive',
       });
       return;
@@ -211,6 +222,7 @@ export default function StudentDashboard() {
                         full_name: (user as any)?.full_name || '',
                         student_id: (user as any)?.student_id || '',
                         department: (user as any)?.department || '',
+                        level: (user as any)?.level || '',
                       },
                     );
                   }}
@@ -248,6 +260,23 @@ export default function StudentDashboard() {
                       onChange={(e) => setProfile((p:any) => ({ ...p, student_id: e.target.value }))}
                       placeholder="Student ID"
                     />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="block text-sm text-slate-300">Level</label>
+                    <select
+                      className="w-full rounded-3xl border border-white/10 bg-white/10 px-4 py-3 text-white focus:border-cyan-400 focus:outline-none"
+                      value={profile?.level || ''}
+                      onChange={(e) => setProfile((p:any) => ({ ...p, level: e.target.value }))}
+                    >
+                      <option value="" disabled>
+                        Select level
+                      </option>
+                      {LEVEL_OPTIONS.map((level) => (
+                        <option key={level} value={level} className="bg-slate-900 text-white">
+                          {level}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-3">
                     <label className="block text-sm text-slate-300">Department</label>
