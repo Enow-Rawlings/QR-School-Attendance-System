@@ -76,10 +76,14 @@ export async function POST(request: NextRequest) {
     const qrToken = await createQRToken(course_id, user.sub, course_id);
     const pinCode = generatePIN();
 
-    // Create session
-    const closesAt = new Date();
+    // Create session using school timezone so stored closes_at matches validation
     const [hours, minutes] = course.end_time.split(':').map(Number);
-    closesAt.setHours(hours, minutes, 0);
+    const schoolOffsetMinutes = (await import('@/lib/time')).getSchoolTimezoneOffset();
+    const utcNow = Date.now();
+    // Build a Date representing current time in school timezone
+    const schoolNow = new Date(utcNow + schoolOffsetMinutes * 60 * 1000);
+    // Set UTC hours on this date so that toISOString() represents the correct absolute time
+    schoolNow.setUTCHours(hours, minutes, 0, 0);
 
     const { data: session, error } = await supabaseServer
       .from('sessions')
@@ -89,7 +93,7 @@ export async function POST(request: NextRequest) {
         qr_token: qrToken,
         pin_code: pinCode,
         status: 'active',
-        closes_at: closesAt.toISOString(),
+        closes_at: schoolNow.toISOString(),
       })
       .select()
       .single();
