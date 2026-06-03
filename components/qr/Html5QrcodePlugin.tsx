@@ -19,6 +19,7 @@ export default function Html5QrcodePlugin({ onScanSuccess, onError }: Html5Qrcod
   useEffect(() => {
     let html5QrCode: any;
     let isStopped = false;
+    let scannerRunning = false;
 
     const qrcodeRegion = document.getElementById('html5qr-code-full-region');
     if (!qrcodeRegion) {
@@ -68,14 +69,24 @@ export default function Html5QrcodePlugin({ onScanSuccess, onError }: Html5Qrcod
           (decodedText: string) => {
             if (isStopped) return;
             onScanSuccess(decodedText);
-            html5QrCode.stop().catch(() => {
-              // Ignore stop errors after success
-            });
+            try {
+              if (scannerRunning) {
+                scannerRunning = false;
+                html5QrCode.stop().catch(() => {
+                  // Ignore stop errors after success
+                });
+              }
+            } catch (e) {
+              // ignore
+            }
           },
           () => {
             // continue scanning on errors
           },
         );
+
+        // mark scanner as running after successful start
+        scannerRunning = true;
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         if (onError) {
