@@ -70,18 +70,23 @@ export async function GET(request: NextRequest) {
 
     if (coursesError) throw coursesError;
 
-    // Get any active sessions for those courses
+    const nowIso = new Date().toISOString();
+
+    // Get any active sessions for those courses that are still within the attendance window
     const { data: activeSessions, error: sessionsError } = await supabaseServer
       .from('sessions')
       .select('id, course_id, status, closes_at')
       .eq('status', 'active')
+      .gt('closes_at', nowIso)
       .in('course_id', allCourseIds);
 
     if (sessionsError) throw sessionsError;
 
     const activeSessionByCourseId: Record<string, any> = {};
     (activeSessions || []).forEach((session: any) => {
-      if (session && session.course_id) {
+      if (!session || !session.course_id) return;
+      const existing = activeSessionByCourseId[session.course_id];
+      if (!existing || new Date(session.closes_at) > new Date(existing.closes_at)) {
         activeSessionByCourseId[session.course_id] = session;
       }
     });

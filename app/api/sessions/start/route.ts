@@ -57,12 +57,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for active sessions
+    // Auto-close any expired active sessions for this course before starting a new one
+    const nowIso = new Date().toISOString();
+    await supabaseServer
+      .from('sessions')
+      .update({ status: 'closed', closed_at: nowIso })
+      .eq('course_id', course_id)
+      .eq('status', 'active')
+      .lt('closes_at', nowIso);
+
+    // Check for active sessions still within the attendance window
     const { data: activeSessions } = await supabaseServer
       .from('sessions')
       .select('*')
       .eq('course_id', course_id)
       .eq('status', 'active')
+      .gt('closes_at', nowIso)
       .limit(1);
 
     if (activeSessions && activeSessions.length > 0) {
