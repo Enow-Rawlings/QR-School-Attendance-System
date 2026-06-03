@@ -129,7 +129,8 @@ export function CoursesList({ refresh }: CoursesListProps) {
     };
 
     const addScheduleEntry = () => {
-      setSchedule((prev) => [...prev, { day_of_week: 'Tuesday', start_time: '09:00', end_time: '10:00' }]);
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      setSchedule((prev) => [...prev, { day_of_week: dayNames[new Date().getDay()], start_time: '09:00', end_time: '10:00' }]);
     };
 
     const removeScheduleEntry = (index: number) => {
@@ -178,11 +179,13 @@ export function CoursesList({ refresh }: CoursesListProps) {
                   onChange={(event) => updateScheduleEntry(index, 'day_of_week', event.target.value)}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 >
+                  <option value="Monday">Monday</option>
                   <option value="Tuesday">Tuesday</option>
                   <option value="Wednesday">Wednesday</option>
                   <option value="Thursday">Thursday</option>
                   <option value="Friday">Friday</option>
                   <option value="Saturday">Saturday</option>
+                  <option value="Sunday">Sunday</option>
                 </select>
                 <Input
                   type="time"

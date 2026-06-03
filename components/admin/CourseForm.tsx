@@ -16,6 +16,12 @@ type LevelGroup = {
 };
 
 const LEVEL_ORDER = ['Level 200', 'Level 300', 'Level 400', 'Masters Year 1', 'Masters Year 2'];
+const DAY_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+const getCurrentDayName = () => {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return days[new Date().getDay()];
+};
 
 export function CourseForm({ onSuccess }: CourseFormProps) {
   const [loading, setLoading] = useState(false);
@@ -29,7 +35,7 @@ export function CourseForm({ onSuccess }: CourseFormProps) {
     name: '',
     code: '',
     schedule: [
-      { day_of_week: 'Tuesday', start_time: '09:00', end_time: '10:00' },
+      { day_of_week: getCurrentDayName(), start_time: '09:00', end_time: '10:00' },
     ],
   });
 
@@ -51,7 +57,7 @@ export function CourseForm({ onSuccess }: CourseFormProps) {
   const addScheduleEntry = () => {
     setFormData((prev) => ({
       ...prev,
-      schedule: [...prev.schedule, { day_of_week: 'Tuesday', start_time: '09:00', end_time: '10:00' }],
+      schedule: [...prev.schedule, { day_of_week: getCurrentDayName(), start_time: '09:00', end_time: '10:00' }],
     }));
   };
 
@@ -144,7 +150,7 @@ export function CourseForm({ onSuccess }: CourseFormProps) {
         name: '',
         code: '',
         schedule: [
-          { day_of_week: 'Tuesday', start_time: '09:00', end_time: '10:00' },
+          { day_of_week: getCurrentDayName(), start_time: '09:00', end_time: '10:00' },
         ],
       });
       setSelectedLevel('Level 200');
@@ -268,11 +274,11 @@ export function CourseForm({ onSuccess }: CourseFormProps) {
                         onChange={(e) => updateScheduleEntry(index, 'day_of_week', e.target.value)}
                         disabled={loading}
                       >
-                        <option>Tuesday</option>
-                        <option>Wednesday</option>
-                        <option>Thursday</option>
-                        <option>Friday</option>
-                        <option>Saturday</option>
+                        {DAY_OPTIONS.map((day) => (
+                          <option key={day} value={day}>
+                            {day}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div className="space-y-2 w-full sm:w-1/3">
